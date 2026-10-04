@@ -1,0 +1,133 @@
+# Weight-tied Looped Llama. Soft_lam15 defaults (+ optional inject / AttnRes via override).
+name: baselines.looped_transformer@LoopedTransformer
+head: lm_head@LMHead
+
+num_loops: 1
+
+layernorm_scaling: true
+layernorm_scaling_power: 0.5
+# Layer-axis CoD: ell | sqrt_n | ell0_sqrt_n | ell0_extra
+layernorm_scaling_ell_mode: ell
+layernorm_scaling_ell0_extra: 0.0
+scale_placement: outside
+per_layer_out_norm: true
+# Peri-LN on FFN/MoE residual write (before γ): none | unit | affine
+ffn_branch_rms: none
+# Same peri-LN on attention residual write (before γ / AttnRes mix)
+attn_branch_rms: none
+# 0=all loops; 1=only t=1 (keeps later-loop attn write for eval / L12)
+attn_branch_rms_loops: 0
+
+cycle_residual_scale: true
+cycle_scale_lambda: 2.0          # init only when learnable
+cycle_scale_lambda_end: 0.0      # unused unless cycle_scale_lambda_sched=linear
+cycle_scale_lambda_sched: none   # none | linear (start→end over total_steps)
+# ★ Locked dense recipe G: λ = 1.5 + softplus(θ), shared, init≈2 (no manual λ)
+# MoE sigmoid ablations: cycle_scale_lambda_pack=sigmoid + amp∈{1,0.5}
+cycle_scale_lambda_learnable: true
+cycle_scale_lambda_min: 1.5
+cycle_scale_lambda_pack: softplus   # softplus | sigmoid | tanh
+cycle_scale_lambda_amp: 1.0        # sigmoid/tanh: λ=min+amp·pack(θ); tanh needs amp≥0.5 to reach λ=2
+cycle_scale_lambda_max: 2.5        # softplus ceiling (0=off); matches tanh amp=1 range
+cycle_scale_lambda_sig_eps: 0.05   # sigmoid/tanh init clamp away from ±1
+# CoD loop-Δz RMS match: (rms_ΔH/rms_Δ2−1)² + stream-gain + depth prior→1.6
+cycle_lambda_rms_match: false
+# rms7b: detach CE→λ in [mid,hi]; rms8: detach whenever λ≥mid (cap hi overshoot)
+cycle_lambda_detach_mode: rms7b
+cycle_lambda_depth_prior: 1.6
+cycle_lambda_depth_prior_coef: 1.0
+cycle_lambda_depth_prior_lo: 1.58
+cycle_lambda_depth_prior_hi: 1.75
+# shared | split | per_layer  (only when cycle_scale_lambda_learnable=true)
+cycle_scale_lambda_mode: shared
+# t0 retired. Time schedule: inv_t | inv_sqrt_t (span=0).
+cycle_eps_t0: 0.0
+cycle_eps_time_mode: inv_t
+cycle_eps_shared_span: 0.0
+cycle_eps_span_mode: progress
+# First-loop-only residual soften. extra=0 off; extra=1 + first_loops=1 → ε1=λ/2, t≥2 still λ/t.
+cycle_eps_first_loops: 1
+cycle_eps_first_extra: 0.0
+# t_eff = max(t, floor). 1=off; 2=loop1 as 1/(t+1); 3=loop1 1/(t+2), loop2 1/(t+1).
+cycle_eps_t_floor: 1.0
+
+# Embed reinject (off by default)
+# Modes: none | loop_start_mix | loop_start_mix_flat | loop_start_add_soft | loop_start_mix_soft
+#        | loop_start_mix_sqrtL | loop_start_mix_sqrtLp1 | loop_start_add
+# sqrtL   = γ=t/(H*sqrt(L))     (β-free; CoD)
+# sqrtLp1 = γ=t/(H*sqrt(L+1))   (β-free; closer to mix0.30 at L=10)
+# add_soft = z←z+ε(t)·x ; mix_soft = (1−ε)z+εx
+embed_inject_mode: none
+embed_inject_beta: 0.25
+embed_inject_learnable: false
+# Inject-mix RMSNorm: none | z | x | both  (only applied when γ>0)
+embed_inject_norm: none
+# t=1 is skipped by default (z≡embed). from_t1 + rms_x: z←(1-g)z+g·RMS(x); empty: (1-g)z
+embed_inject_from_t1: false
+embed_inject_t1_style: rms_x
+embed_inject_t1_keep: -1.0
+embed_inject_when: start
+embed_inject_unit_loops: 0
+# inherit = residual time_mode; inv_t = g=λ/t even when residual is inv_h
+embed_inject_time_mode: inherit
+# true ⇒ soft-inject also ÷√L (inv_t → g=λ/(t√L)); residual LNS independent
+embed_inject_depth_scale: false
+# false: z←(1−g)z+g·x   true: z←g·z+(1−g)·x
+embed_inject_swap: false
+
+# Loop-ID embedding: none | add (H vecs @ loop start) | add_layer (H×L @ each layer)
+#                    | sin | scale
+loop_id_embed_mode: none
+loop_id_embed_scale: 1.0
+loop_id_embed_max: 16
+
+# AttnRes scopes: intra | loop (legacy) | loop_carry | loop_lag1
+#                  | loop_hybrid | loop_carry_lag1 | dual_axis
+attn_res: false
+attn_res_scope: intra
+attn_res_max_slots: 0   # 0 → auto by scope
+# dual_axis: apply=attn, fuse=sum, β_init=0.55 learnable,
+# content e^{w·RMSNorm(o)/τ} w=0 init; H carry across K-seg; L reset each cycle
+dual_axis_fuse_half: false
+dual_axis_fuse_mode: sum
+dual_axis_blend_lambda: 0.25
+dual_axis_beta_init: 0.55
+dual_axis_beta_h_init: 0.55
+dual_axis_beta_l_init: 0.55
+dual_axis_heads: 1
+dual_axis_content: true
+dual_axis_content_mode: exp
+dual_axis_content_temp: 1.0
+dual_axis_l_persist: false
+dual_axis_apply: attn
+# residual write: x_plus_r | replace_r | o_plus_r ; update N/D from: o | x
+dual_axis_residual_mode: x_plus_r
+dual_axis_update_src: o
+# N/D update: ema | accum | window | window_age | window_softmax | window_smage
+dual_axis_nd_mode: ema
+dual_axis_beta_learnable: true
+dual_axis_window_size: 4
+# H-axis write every N loops (1=every; 3≈K=3). L-axis still updates every layer call.
+dual_axis_h_update_every: 1
+# Learnable β floors (0=off): β = min + (1-min)*sigmoid(raw)
+dual_axis_beta_h_min: 0.0
+dual_axis_beta_l_min: 0.0
+# AttnRes write scale vs loop index: none | sqrt_t | inv_t
+dual_axis_r_scale_mode: none
+# Decay β_H on H N/D writes with loop t: none | sqrt_t | inv_t (≠ residual rscale)
+dual_axis_beta_h_decay: none
+# post=update then readout; pre=read memory then update (use with x_plus_o_plus_r)
+dual_axis_update_order: post
+# H layout: per_layer | shared | both
+# write: every_layer | last_layer | loop_mean | first_layer | stride | first_last | mid_layer
+# src: o | l
+dual_axis_h_layout: per_layer
+dual_axis_h_write: every_layer
+dual_axis_h_write_stride: 2
+dual_axis_h_update_src: o
+dual_axis_beta_p_init: 0.55
+# False=one β_L for all loops; True=β_L[t] per loop
+dual_axis_beta_l_per_loop: false
+
+# Fixed K=3 segmented BP for cross-loop AttnRes experiments.
+bp_segment_len: 0

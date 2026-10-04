@@ -1,0 +1,80 @@
+defaults:
+  # Looped MoE Transformer + document-packed causal LM (full-sequence CE).
+  - arch/net@arch: looped_transformer
+  - arch/size@arch: T_moe_L10
+  - data: fineweb_document
+  - _self_
+
+hydra:
+  output_subdir: null
+
+# Full causal attention + full-sequence CE only (PrefixLM / QA removed).
+lm_mode: causal
+
+global_batch_size: 512  # global samples per optimizer step
+micro_batch_samples: 8  # samples per device per micro forward
+gradient_accumulation_steps: null
+epochs: 4  # legacy when total_steps<=0; with total_steps>1 train runs until steps (cycles epoch_*)
+
+checkpoint_interval: 1
+
+lr: 2.2e-4
+lr_min_ratio: 1.0
+lr_warmup_steps: 2000
+lr_warmup_ratio: null
+# cosine | wsd (Warmup–Stable–Decay)
+lr_schedule: cosine
+lr_decay_ratio: null
+lr_decay_steps: 0
+
+sample_multiplier: null
+total_steps: -1
+
+weight_decay: 0.1
+beta1: 0.9
+beta2: 0.95
+# Optional separate peak LR / WD for learnable cycle λ and AttnRes β (null = use lr / weight_decay).
+cycle_lambda_lr: null
+cycle_lambda_weight_decay: null
+# μP-style λ-space: divide θ-grad by (∂λ/∂θ)² so Δλ≈−lr·∂L/∂λ under SGD.
+cycle_lambda_grad_in_lambda_space: true
+# sgd = separate Euclidean SGD on λ (recommended); adamw = share main AdamW group.
+cycle_lambda_optim: sgd
+dual_axis_beta_lr: null
+dual_axis_beta_weight_decay: null
+
+optimizer: adamw
+ema: null
+# Global L2 grad clip before every optim.step. Set <=0 to disable.
+clip_grad_norm: 1.0
+# Skip optim.step: nonfinite, or adaptive Δloss spike.
+# thr = max(skip_loss_delta, skip_loss_rel * EMA); also hard absolute jump.
+skip_bad_step: true
+skip_loss_delta: 0.25
+skip_loss_rel: 0.1
+skip_loss_ratio: 0.09
+skip_loss_hard: 1.5
+skip_loss_ema: 0.9
+skip_delta_warmup_steps: 0
+# Abort training after a SPIKE (writes SPIKE_ABORT / alarm files).
+skip_abort_on_spike: false
+# Abort after N consecutive global steps that each skipped ≥1 K-seg. 0 = off.
+skip_abort_consecutive: 0
+
+log_interval: 1
+tensorboard_plot_interval: 100
+eval_interval: 500
+eval_token_budget: 1000000
+eval_epoch: 9
+# 0 = off. Mid-train pause for downstream eval every N optimizer steps.
+downstream_eval_interval: 0
+# 0 = off. Save live + snapshots/step_* every N optimizer steps.
+checkpoint_every_steps: 0
+
+project_name: null
+run_name: null
+checkpoint_path: null
+resume_from: null
+resume_epoch: null
+weights_only_resume_from_ema: false
+seed: 0

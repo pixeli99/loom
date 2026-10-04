@@ -1,0 +1,7 @@
+# FineWeb-Edu document Causal LM pack (DocumentDataset).
+# Build with tools/pack_document_data.py, then pass data.path=<dir> (DATA_PATH in scripts/train.sh).
+
+format: document
+path: ???           # Override at CLI: data.path=/path/to/packed_data
+val_path: null
+target_only: false

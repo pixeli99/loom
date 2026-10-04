@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+.ipynb_checkpoints/
+.triton_cache/
+
+# data, checkpoints and run outputs
+/data/
+/checkpoints/
+/outputs/
+eval/hf_cache/

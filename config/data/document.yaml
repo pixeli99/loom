@@ -1,0 +1,7 @@
+# Traditional Causal LM document packing (see dataset_document.py).
+# FineWeb defaults: config/data/fineweb_document.yaml (data=fineweb_document).
+
+format: document
+path: ???           # Override at CLI: data.path=/path/to/prepared_document_data
+val_path: null
+target_only: false

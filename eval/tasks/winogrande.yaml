@@ -1,0 +1,20 @@
+# Official Eleuther winogrande cloze (same preprocess / acc as lm_eval 0.4.11).
+# Cluster cache only has winogrande_debiased; its validation split is the
+# standard 1267-example set used by winogrande_xl (xl vs debiased differ in train).
+task: winogrande
+dataset_path: allenai/winogrande
+dataset_name: winogrande_debiased
+output_type: multiple_choice
+training_split: train
+validation_split: validation
+doc_to_text: !function preprocess_winogrande.doc_to_text
+doc_to_target: !function preprocess_winogrande.doc_to_target
+doc_to_choice: !function preprocess_winogrande.doc_to_choice
+should_decontaminate: true
+doc_to_decontamination_query: sentence
+metric_list:
+  - metric: acc
+    aggregation: mean
+    higher_is_better: true
+metadata:
+  version: 1.0

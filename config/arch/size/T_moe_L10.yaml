@@ -1,0 +1,44 @@
+# MoE L10 e32 (30 routed + 2 shared) for long-run deepen campaigns.
+# Same expert geometry as T_moe_L5 e32 comments / moe_30r2s_struct:
+#   total 32 = 30 routed + 2 shared; top_k=8 includes shared → 6r+2s active.
+
+n_layers: 10
+
+hidden_size: 512
+num_heads: 8
+num_key_value_heads: 4
+
+expansion: 4
+
+ffn_type: moe
+
+moe:
+  expert_granularity: 8
+  coarse_top_k: 1
+
+  num_routed_experts: 30
+  top_k: 8
+  top_k_includes_shared: true
+  num_shared_experts: 2
+
+  shared_expert: true
+  shared_expert_size_multiplier: 1
+
+  expert_intermediate_size: 512
+
+  gate_type: sigmoid
+  router_dtype: float32
+  load_balance_bias_lr: 2.0e-3
+  router_z_loss_coef: 1.0e-3
+  capacity_factor: 1.5
+  router_per_loop: true
+  router_loop_bias: false
+  router_num_loops: 1
+
+norm_type: pre
+norm_eps: 1.0e-6
+
+rope_theta: 10000.0
+pos_emb_type: rope
+
+init_type: lecun_normal
