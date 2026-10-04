@@ -10,3 +10,4 @@ __pycache__/
 /checkpoints/
 /outputs/
 eval/hf_cache/
+tools/animations/frames_*/

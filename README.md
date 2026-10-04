@@ -8,6 +8,16 @@ In MoE language models, the gain from extra loops usually stops after about two 
 LOOM is a training recipe for looped MoE models: each loop should add new computation, and the recurrent state should stay stable.
 With LOOM, models from 100M to 1.7B parameters train stably with 9 to 12 loops.
 
+<p align="center">
+  <img src="assets/expert_routing.gif" width="90%" alt="Across 9 loops, one token in the 1.7B LOOM model is routed to 13 distinct experts; the average over 16,384 tokens is 14.6, against 6 if every loop reused the same experts.">
+</p>
+
+Routing measured in the 1.7B LOOM model with 9 loops, on held-out text.
+Left: the 30 routed experts of layer 8 for one token. Filled circles are the 6 experts chosen in the current loop, light circles were chosen in an earlier loop.
+Right: how many distinct experts the token has used after each loop. If every loop reused the same experts, the count would stay at 6.
+The average over 16,384 tokens and all 15 layers is 14.6.
+The data come from `tools/animations/collect_routing.py`, and `tools/animations/routing.py` draws the animation.
+
 | Component | What it does | Config |
 |---|---|---|
 | Residual scaling | scales each loop's residual update so hidden-state variance stays bounded as loops are added | `arch.cycle_residual_scale`, `arch.cycle_scale_lambda` |
