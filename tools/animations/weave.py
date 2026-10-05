@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib.collections import LineCollection
 
-from style import BG, TEXT, W, Recorder, ease, glow_dot, loop_color, mix, new_frame
+from style import TEXT, W, Recorder, ease, glow_dot, loop_color, new_frame
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -26,9 +26,9 @@ NE = d["n_routed"]
 TOKENS = d["example_tokens"][:NTOK]
 FOCUS = 2                                            # " guitar"
 COLS, PX, PY = 8, 32.0, 12.2                         # cloth: 6 rows x 8 tokens
-WARP_CELL = "#2A3449"
-WARP_LINE = "#1A2131"
-VIEW0_W = 46.0
+WARP_CELL = "#D3D9E3"
+WARP_LINE = "#E6EAF0"
+VIEW0_W = 42.0
 PT_PER_UNIT0 = W * 72 / VIEW0_W                      # points per data unit at the start
 
 
@@ -90,7 +90,7 @@ def draw_token(ax, k, rows, u, alpha=1.0, head=None, glow=False, warp_alpha=1.0)
 
 def render(rec):
     fcx, fcy = origin(FOCUS)
-    c0 = np.array([fcx + NE / 2 + 1.0, fcy - (NL - 1) / 2 - 0.4])
+    c0 = np.array([fcx + NE / 2 + 2.0, fcy - (NL - 1) / 2 - 0.6])
     nrow = NTOK // COLS
     cloth_w = (COLS - 1) * PX + NE
     c1 = np.array([cloth_w / 2 - 0.5, -(nrow - 1) * PY / 2 - (NL - 1) / 2 - 0.9])
@@ -120,7 +120,7 @@ def render(rec):
         else:
             draw_token(ax, FOCUS, rows, u, head=head, glow=True)
         if head is not None and 0 < p < 1 and intro >= 1:
-            glow_dot(ax, head, fcy - loop, "#FFFFFF", 0.22 * u)
+            glow_dot(ax, head, fcy - loop, TEXT, 0.20 * u)
         # distinct experts touched so far
         seen = set()
         for t in rows:
@@ -128,24 +128,24 @@ def render(rec):
                 if head is None or t != rows[-1] or fcx + e <= head:
                     seen.add(int(e))
         if ui > 0:
-            ax.text(fcx + NE + 0.8, fcy + 0.5, f"{len(seen)}", fontsize=46 * s, weight="bold", color=TEXT,
+            ax.text(fcx + NE + 0.8, fcy + 0.5, f"{len(seen)}", fontsize=58 * s, weight="bold", color=TEXT,
                     ha="left", va="top", alpha=ui, zorder=6)
-            ax.text(fcx + NE + 0.9, fcy - 3.2, "experts\nused", fontsize=13 * s, color=TEXT, ha="left", va="top",
+            ax.text(fcx + NE + 0.9, fcy - 3.6, "experts\nused", fontsize=18 * s, color=TEXT, ha="left", va="top",
                     alpha=ui, linespacing=1.25, zorder=6)
             for t in rows if intro >= 1 else []:
-                ax.text(fcx - 1.4, fcy - t, f"{t + 1}", color=loop_color(t, NL), fontsize=13 * s, ha="right",
+                ax.text(fcx - 1.4, fcy - t, f"{t + 1}", color=loop_color(t, NL), fontsize=17 * s, ha="right",
                         va="center", family="DejaVu Sans Mono", alpha=ui, zorder=6)
-            ax.text(fcx - 1.4, fcy + 1.3, "loop", fontsize=11.5 * s, color=TEXT, ha="right", va="center",
+            ax.text(fcx - 1.4, fcy + 1.3, "loop", fontsize=16 * s, color=TEXT, ha="right", va="center",
                     alpha=ui, zorder=6)
             ax.text(fcx + (NE - 1) / 2, fcy - (NL - 1) - 1.6, f"{NE} experts · layer {LAYER + 1} · token "
-                    f"“{TOKENS[FOCUS].strip()}”", fontsize=12 * s, color=TEXT, ha="center", va="top",
+                    f"“{TOKENS[FOCUS].strip()}”", fontsize=17 * s, color=TEXT, ha="center", va="top",
                     alpha=ui, zorder=6)
         if tokens > 0:
             for k in range(NTOK):
                 x, y = origin(k)
                 tok = TOKENS[k].replace("\n", "↵").strip() or "␣"
-                ax.text(x + (NE - 1) / 2, y - (NL - 1) - 0.9, tok, fontsize=2.3 * u, ha="center", va="top",
-                        color=mix(BG, TEXT, 1.0 if k == FOCUS else 0.92), alpha=tokens,
+                ax.text(x + (NE - 1) / 2, y - (NL - 1) - 0.9, tok, fontsize=2.9 * u, ha="center", va="top",
+                        color=TEXT, alpha=tokens,
                         weight="bold" if k == FOCUS else "normal")
         rec.add(fig)
 

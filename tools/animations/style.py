@@ -1,4 +1,4 @@
-"""Shared look for the README animations: dark background, one hue per loop, one text colour."""
+"""Look of the README animation: white background, one hue per loop, one text colour."""
 import os
 import shutil
 import subprocess
@@ -11,10 +11,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, to_rgb
 
-BG = "#0D1117"
-TEXT = "#E8EAF0"
-WARP = "#283146"
-LOOP_CMAP = LinearSegmentedColormap.from_list("loops", ["#5B7CFA", "#2FC0A5", "#F59E5B"])
+BG = "#FFFFFF"
+TEXT = "#1F2328"
+WARP = "#D3D9E3"
+LOOP_CMAP = LinearSegmentedColormap.from_list("loops", ["#3A5BD9", "#2BA89A", "#F08A4B"])
 FPS = 24
 W, H_PX, DPI = 12.0, 6.0, 100  # 1200 x 600 px
 
