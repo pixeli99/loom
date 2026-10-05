@@ -9,14 +9,10 @@ LOOM is a training recipe for looped MoE models: each loop should add new comput
 With LOOM, models from 100M to 1.7B parameters train stably with 9 to 12 loops.
 
 <p align="center">
-  <img src="assets/expert_routing.gif" width="90%" alt="Across 9 loops, one token in the 1.7B LOOM model is routed to 13 distinct experts; the average over 16,384 tokens is 14.6, against 6 if every loop reused the same experts.">
+  <img src="assets/loom.gif" width="100%" alt="Left sphere: LOOM's hidden state turns about 10 degrees per loop after loop 3; right sphere: without residual scaling it turns 60 to 80 degrees every loop. Then one token's routing is woven loop by loop: 14 distinct experts over 9 loops.">
 </p>
 
-Routing measured in the 1.7B LOOM model with 9 loops, on held-out text.
-Left: the 30 routed experts of layer 8 for one token. Filled circles are the 6 experts chosen in the current loop, light circles were chosen in an earlier loop.
-Right: how many distinct experts the token has used after each loop. If every loop reused the same experts, the count would stay at 6.
-The average over 16,384 tokens and all 15 layers is 14.6.
-The data come from `tools/animations/collect_routing.py`, and `tools/animations/routing.py` draws the animation.
+The two problems LOOM addresses, measured in trained models (details [below](#what-the-loops-do)).
 
 | Component | What it does | Config |
 |---|---|---|
@@ -28,6 +24,31 @@ The data come from `tools/animations/collect_routing.py`, and `tools/animations/
 | Segmented backprop | backward and optimizer step every K loops (K = 3) | `arch.bp_segment_len` |
 
 All of these are set in `scripts/train.sh`.
+
+## What the loops do
+
+Both animations are drawn from measurements of trained checkpoints. The scripts and the measured data are in `tools/animations/`.
+
+**The state stays stable.** At the end of every loop the hidden state has a fixed RMS, so a loop can only rotate it.
+Each comet is one token; its path shows how far the state turns in each loop.
+Both models are 329M with 9 loops, trained for 5,000 steps with identical settings, except that the right one has no residual scaling.
+With LOOM, the state turns 7 to 12 degrees per loop from loop 4 on. Without residual scaling, it turns 60 to 80 degrees in every loop.
+The angles printed under the spheres are the real mean angles over 4,096 held-out tokens.
+The positions on the sphere are a 3-D approximation: for each token, its ten states are placed so that the angles between them match the real ones (mean error about 7 degrees).
+
+<p align="center">
+  <img src="assets/sphere.gif" width="100%" alt="LOOM's hidden state settles after a few loops; without residual scaling it turns 60 to 80 degrees in every loop.">
+</p>
+
+**Each loop uses different experts.** The 30 vertical threads are the routed experts of layer 8 in the 1.7B model with 9 loops, and each row is one loop.
+Where the loop's router picks an expert, the row passes over that thread (coloured); everywhere else, it passes under.
+Over 9 loops, the token "guitar" uses 14 distinct experts, where loops that reused the same experts would use 6.
+Averaged over 16,384 held-out tokens and all 15 layers, the count is 14.6, and two consecutive loops share about 3 of their 6 experts.
+At the end, the view pulls back to the same weave for the first 48 tokens of the sentence.
+
+<p align="center">
+  <img src="assets/weave.gif" width="100%" alt="Nine loops weave through 30 experts; one token uses 14 distinct experts, and the first 48 tokens of the sentence form a cloth.">
+</p>
 
 ## Install
 

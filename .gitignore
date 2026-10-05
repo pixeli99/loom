@@ -11,3 +11,4 @@ __pycache__/
 /outputs/
 eval/hf_cache/
 tools/animations/frames_*/
+out/

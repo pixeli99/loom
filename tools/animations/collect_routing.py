@@ -3,7 +3,9 @@
 Runs a trained checkpoint on held-out documents and stores, for every MoE layer, loop
 and token, the routed experts chosen by top-k. Writes routing.json next to this file.
 
-    PYTHONPATH=eval:. python tools/animations/collect_routing.py <ckpt> <packed data dir> [n_docs] [seq_len]
+    PYTHONPATH=eval:. python tools/animations/collect_routing.py <ckpt> <packed data dir> [n_docs] [seq_len] [example_doc]
+
+example_doc is the index of the held-out document whose first 64 tokens are drawn (default 0).
 """
 import json
 import os
@@ -22,6 +24,7 @@ from models.moe import MoEFFN  # noqa: E402
 ckpt_path, data_dir = sys.argv[1], Path(sys.argv[2])
 n_docs = int(sys.argv[3]) if len(sys.argv) > 3 else 32
 seq_len = int(sys.argv[4]) if len(sys.argv) > 4 else 512
+example_doc = int(sys.argv[5]) if len(sys.argv) > 5 else 0
 
 ckpt = load_checkpoint_for_eval(ckpt_path)
 model = ckpt.model.eval()
@@ -44,6 +47,9 @@ tokens = np.load(data_dir / "tokens.npy", mmap_mode="r")
 starts = np.load(data_dir / "epoch_0" / "doc_start.npy")
 lens = np.load(data_dir / "epoch_0" / "doc_len.npy")
 docs = [np.asarray(tokens[s : s + seq_len], dtype=np.int32) for s, l in zip(starts, lens) if l >= seq_len][:n_docs]
+# The drawn example goes first (it may be shorter than seq_len).
+ex_s, ex_l = int(starts[example_doc]), int(lens[example_doc])
+docs.insert(0, np.asarray(tokens[ex_s : ex_s + min(ex_l, seq_len)], dtype=np.int32))
 
 with torch.no_grad():
     for d in docs:
